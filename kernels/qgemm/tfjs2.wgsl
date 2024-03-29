@@ -7,7 +7,7 @@ fn getBIndexFromCoords3D(coords : vec3<i32>) -> i32 {
 }
 
 fn getOutputIndexFromCoords(coords : vec3<i32>) -> i32 {
-  return dot(coords, metadata.outStrides);
+  return dot(coords, metadata.outShapeStrides);
 }
         
 fn setOutputAtIndex(flatIndex : i32, value : vec4<f32>) {
@@ -24,9 +24,14 @@ fn getA(d0 : i32, d1 : i32, d2 : i32) -> vec4<f32> {
 }
    
 fn getB(d0 : i32, d1 : i32, d2 : i32) -> vec4<f32> {
-    return vec4<f32>(B[getBIndexFromCoords3D(vec3<i32>(d0,d1,d2)) / 4]);
+    return unpack4x8snorm(B[getBIndexFromCoords3D(vec3<i32>(d0,d1,d2)) / 4]);
 }
-   
+
+fn getAbsMax(d0 : i32, d1 : i32, d2 : i32) -> f32 {
+    let abs_index = getBIndexFromCoords3D(vec3<i32>(d0,d1,d2)) / 16;
+    return absmax[abs_index]; 
+}
+
 {% if FIT_A_OUTER and FIT_INNER %}
 fn mm_readA(batch: i32, row: i32, col: i32) -> vec4<f32> {
     var value = vec4<f32>(0.0);
@@ -62,7 +67,7 @@ fn mm_write(batch: i32, row: i32, col: i32, valueIn: vec4<f32>) {
     }
 {% endif %}
 }
-
+   
       
 var<private> localId: vec3<u32>;
 var<private> globalId: vec3<u32>;
@@ -70,9 +75,11 @@ var<private> workgroupId: vec3<u32>;
 
 @group(0) @binding(0) var<storage, read> A: array<vec4<f32>>;
 
-@group(0) @binding(1) var<storage, read> B: array<vec4<f32>>;
+@group(0) @binding(1) var<storage, read> B: array<u32>;
 
-@group(0) @binding(2) var<storage, read_write> result: array<vec4<f32>>;
+@group(0) @binding(2) var<storage, read> absmax: array<f32>;
+
+@group(0) @binding(3) var<storage, read_write> result: array<vec4<f32>>;
 
 struct Meta {
     aShape: vec3<i32>,
@@ -80,9 +87,7 @@ struct Meta {
     bShape: vec3<i32>,
     bStrides: vec3<i32>,
     outShape: vec3<i32>,
-    outStrides: vec3<i32>,
-    dimAOuter: i32,
-    dimBOuter: i32,
+    outShapeStrides: vec3<i32>,
     dimInner: i32,
 }
 
@@ -96,16 +101,15 @@ var<workgroup> mm_Bsub : array<array<vec4<f32>, {{ TILE_DIM / 4 }}>, {{ TILE_DIM
 fn main(@builtin(local_invocation_id) localId : vec3<u32>,
         @builtin(global_invocation_id) globalId : vec3<u32>,
         @builtin(workgroup_id) workgroupId : vec3<u32>) {
-    let batch = i32(globalId.z);
-    let batchA = batch % metadata.aShape[0];
-    let batchB = batch % metadata.bShape[0];
-
     let localRow = i32(localId.y);
     let tileRow = localRow * {{ ROW_PER_THREAD }};
     let tileCol = i32(localId.x);
 
     let globalRow = i32(globalId.y) * {{ ROW_PER_THREAD }};
     let globalCol = i32(globalId.x) * 4;
+    let batch = i32(globalId.z);
+    let batchA = batch % metadata.aShape.x; 
+    let batchB = batch % metadata.bShape.x;
 
     let numTiles = (metadata.dimInner - 1) / {{ TILE_DIM }} + 1;
     var kStart = 0;
@@ -127,7 +131,8 @@ fn main(@builtin(local_invocation_id) localId : vec3<u32>,
         for (var innerRow = 0; innerRow < {{ ROW_PER_THREAD }}; innerRow++) {
             let inputRow = tileRowB + innerRow;
             let inputCol = tileCol;
-            mm_Bsub[inputRow][inputCol] = mm_readB(batchB, kStart + inputRow, globalCol);
+            let absmax = getAbsMax(batchB, kStart + inputRow, globalCol);
+            mm_Bsub[inputRow][inputCol] = mm_readB(batchB, kStart + inputRow, globalCol) * absmax;
         }
         kStart = kStart + {{ TILE_DIM }};
         workgroupBarrier();
@@ -150,7 +155,7 @@ fn main(@builtin(local_invocation_id) localId : vec3<u32>,
         workgroupBarrier();
     }
 
-    {% for innerRow in range(end=ROW_PER_THREAD) %}
+    {% for innerRow in range(end=ROW_PER_THREAD) -%}
         mm_write(batch, globalRow + {{ innerRow }}, globalCol, acc[{{ innerRow }}]);
     {% endfor %}
-  }
+}
