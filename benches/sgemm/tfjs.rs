@@ -70,11 +70,15 @@ impl KernelBench for SGEMMBenchmark {
         let mut tera = tera::Tera::default();
         let mut context = tera::Context::new();
 
-        let is_vec4 = (self.M % 4 == 0) && (self.N % 4 == 0) && (self.K % 4 == 0);
+        let is_vec4 = !self.trans_a
+            && !self.trans_b
+            && (self.M % 4 == 0)
+            && (self.N % 4 == 0)
+            && (self.K % 4 == 0);
         let template = if is_vec4 {
-            include_str!("../../kernels/sgemm/tfjs.wgsl")
+            include_str!("../../kernels/sgemm/gemm_vectorized.wgsl")
         } else {
-            include_str!("../../kernels/sgemm/scalar_tf.wgsl")
+            include_str!("../../kernels/sgemm/gemm_scalar.wgsl")
         };
         tera.add_raw_template(Self::name(), template).unwrap();
         let shape_fit = self.shape_fit();
@@ -103,8 +107,10 @@ impl KernelBench for SGEMMBenchmark {
     fn workload(&self, _: &[CPUTensor]) -> Workload {
         let (TILE_DIM, ROW_PER_THREAD) = (self.TILE_DIM, self.ROW_PER_THREAD);
         let workgroup_size = wgs![(TILE_DIM / 4) as _, (TILE_DIM / ROW_PER_THREAD) as _, 1];
-        let group_x = Workload::ceil(self.N, TILE_DIM);
-        let group_y = Workload::ceil(self.M, TILE_DIM);
+        let dimA = if self.trans_a { self.K } else { self.M };
+        let dimB = if self.trans_b { self.K } else { self.N };
+        let group_x = Workload::ceil(dimB, TILE_DIM);
+        let group_y = Workload::ceil(dimA, TILE_DIM);
         let workgroup_count = wgc![group_x as _, group_y as _, self.B as u32];
         let dispatch = Workload::new(workgroup_size, workgroup_count);
         println!("DISPATCH: {:?}", dispatch);
@@ -169,11 +175,11 @@ impl KernelBench for SGEMMBenchmark {
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 2048;
-    let N = 2048;
-    let K = 2048;
+    let M = 1023;
+    let N = 1024;
+    let K = 1024;
     let TILE_DIM = 32;
-    let ROW_PER_THREAD = 8;
+    let ROW_PER_THREAD = 4;
 
     let trans_a = false;
     let trans_b = false;
