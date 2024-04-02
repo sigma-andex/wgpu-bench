@@ -43,7 +43,7 @@ impl KernelBench for LayerNorm {
         "WelfordScalar"
     }
 
-    fn source(workload: &Workload) -> String {
+    fn source(&self, workload: &Workload) -> String {
         let mut tera = tera::Tera::default();
         let mut context = tera::Context::new();
         tera.add_raw_template(
@@ -63,7 +63,7 @@ impl KernelBench for LayerNorm {
         vec![input, scale, bias, output]
     }
 
-    fn workload(tensors: &[CPUTensor]) -> Workload {
+    fn workload(&self, tensors: &[CPUTensor]) -> Workload {
         let input = &tensors[0];
         let [_B, M, _N] = input.shape().try_into().unwrap();
         Workload::new(wgs![WARP_SIZE as _, 1, 1], wgc![M as _, 1, 1])

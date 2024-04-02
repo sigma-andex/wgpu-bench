@@ -7,6 +7,7 @@ mod metadata;
 mod quant;
 mod shape;
 mod storage;
+mod strides;
 mod tensor;
 mod workload;
 
@@ -20,6 +21,7 @@ pub use metadata::*;
 pub use quant::*;
 pub use shape::*;
 pub use storage::*;
+pub use strides::*;
 pub use tensor::*;
 pub use workload::*;
 

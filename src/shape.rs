@@ -21,6 +21,10 @@ impl Shape {
     pub fn to_vec(&self) -> Vec<usize> {
         self.0.clone().into_vec()
     }
+
+    pub fn remove(&mut self, index: usize) -> usize {
+        self.0.remove(index)
+    }
 }
 
 impl std::fmt::Debug for Shape {
