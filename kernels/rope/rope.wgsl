@@ -31,7 +31,6 @@ struct Meta {
 @group(1) @binding(0)
 var<uniform> metadata: Meta;
 
-
 @compute @workgroup_size({{ workgroup_size_x }}, {{ workgroup_size_y }}, {{ workgroup_size_z }})
 fn main( 
         @builtin(local_invocation_id) local_id: vec3<u32>,
@@ -65,6 +64,6 @@ fn main(
   let rx1 = x1 * costheta - x2 * sintheta;
   let rx2 = x1 * sintheta + x2 * costheta;
 
-  out[out_index_1] = f32(x1);
-  out[out_index_2] = f32(x2);
+  out[out_index_1] = f32(rx1);
+  out[out_index_2] = f32(rx2);
 }
