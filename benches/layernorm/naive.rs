@@ -41,7 +41,7 @@ impl KernelBench for LayerNormBench {
         "LayerNorm"
     }
 
-    fn source(workload: &Workload) -> String {
+    fn source(&self, workload: &Workload) -> String {
         let mut tera = tera::Tera::default();
         let mut context = tera::Context::new();
         tera.add_raw_template(
@@ -62,7 +62,7 @@ impl KernelBench for LayerNormBench {
         vec![input, scale, bias, output]
     }
 
-    fn workload(tensors: &[CPUTensor]) -> Workload {
+    fn workload(&self, tensors: &[CPUTensor]) -> Workload {
         let input = &tensors[0];
         let [_B, M, _N] = input.shape().try_into().unwrap();
         Workload::new(wgs![128, 1, 1], wgc![M as _, 1, 1])
@@ -87,11 +87,14 @@ impl KernelBench for LayerNormBench {
                 import torch.nn.functional as F
 
                 (input, scale, bias) = (torch.from_numpy('py_input), torch.from_numpy('py_scale), torch.from_numpy('py_bias))
+                print("Input: ", input)
+                print("Scale: ", scale)
+                print("Bias: ", bias)
                 result = F.layer_norm(input, (input.shape[-1],), weight=scale, bias=bias).numpy()
             };
             CPUTensor::from(result.get_with_gil::<&PyArrayDyn<f32>>(py, "result"))
         });
-        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self);
+        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self, tensors);
         let cpu_result = gpu_tensors.remove(3).into_cpu(TIMER.handle()).unwrap();
         ground.all_close(&cpu_result, 1e-5, 1e-5).unwrap();
     }

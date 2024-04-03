@@ -2,7 +2,7 @@ use bytemuck::NoUninit;
 use ndarray::Dimension;
 use numpy::ndarray::{ArrayD, ArrayViewD};
 use rand::{distributions::uniform::SampleUniform, prelude::SeedableRng, rngs::SmallRng};
-use rand_distr::{Distribution, Poisson};
+use rand_distr::{Distribution, Poisson, StandardNormal};
 
 use numpy::PyArrayDyn;
 use wgpu::{BindGroupEntry, BindingResource, BufferUsages};
@@ -113,12 +113,14 @@ impl CPUTensor {
     }
 
     pub fn randn<T: num_traits::Float + DataType + SampleUniform>(shape: Shape) -> Self {
-        let between = Poisson::new(11.0).unwrap();
-        let mut rng: SmallRng = SeedableRng::seed_from_u64(42);
-        let rand_vec = (0..shape.numel())
-            .map(|_| T::from(between.sample(&mut rng)).unwrap())
+        let mut rng = SmallRng::from_entropy();
+        let data = (0..shape.numel())
+            .map(|_| {
+                let sample: f32 = StandardNormal.sample(&mut rng);
+                T::from(sample).expect("Failed to convert sample")
+            })
             .collect::<Vec<_>>();
-        Self::from_slice(&rand_vec, shape)
+        Self::from_slice(&data, shape)
     }
 
     pub fn zeros<D: DataType>(shape: Shape) -> Self {

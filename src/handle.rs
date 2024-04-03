@@ -43,6 +43,7 @@ impl GPUHandle {
             required_limits: Limits {
                 max_buffer_size: (2 << 29) - 1,
                 max_storage_buffer_binding_size: (2 << 29) - 1,
+                max_compute_invocations_per_workgroup: 1024,
                 ..Default::default()
             },
         };

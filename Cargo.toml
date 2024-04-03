@@ -44,6 +44,16 @@ name = "qgemm"
 path = "benches/qgemm/tfjs.rs"
 harness = false
 
+[[bench]]
+name = "rope"
+path = "benches/rope/rope.rs"
+harness = false
+
+[[bench]]
+name = "rope_cp"
+path = "benches/rope/rope_cp.rs"
+harness = false
+
 [dependencies]
 anyhow = "1.0.75"
 bytemuck = "1.14.0"
