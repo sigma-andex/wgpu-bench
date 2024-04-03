@@ -49,15 +49,33 @@ impl KernelBench for Rope {
 
     // [batch_size, num_heads, seq_len, head_dim]
     fn tensors(&self) -> Vec<CPUTensor> {
-        let input = CPUTensor::randn::<f32>(shape![1, 16, 64, 128]);
-        let output = CPUTensor::zeros::<f32>(shape![1, 16, 64, 128]);
+        let input = CPUTensor::randn::<f32>(shape![2, 16, 64, 128]);
+        let output = CPUTensor::zeros::<f32>(shape![2, 16, 64, 128]);
         vec![input, output]
     }
 
     fn workload(&self, tensors: &[CPUTensor]) -> Workload {
         let input = &tensors[0];
         let [BS, NH, SL, HD] = input.shape().try_into().unwrap();
-        let wl = Workload::new(wgs![16, 8, 8], wgc![4, 8, 2]);
+
+        let total_x = 128 / 2;
+        let total_y = SL;
+        println!("INPUT: {:?}", input.shape());
+        println!("SL * HD: {}", SL * HD);
+        let total_z = input.shape().numel() / (SL * HD);
+
+        let wgsx = 16;
+        let wgsy = 8;
+        let wgsz = 8;
+
+        let wgcx = total_x / wgsx;
+        let wgcy = total_y / wgsy;
+        let wgcz = total_z / wgsz;
+
+        let wl = Workload::new(
+            wgs![wgsx as _, wgsy as _, wgsz as _],
+            wgc![wgcx as _, wgcy as _, wgcz as _],
+        );
         println!("{:?}", wl);
         wl
     }
