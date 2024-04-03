@@ -92,7 +92,7 @@ impl KernelBench for LayerNorm {
             };
             CPUTensor::from(result.get_with_gil::<&PyArrayDyn<f32>>(py, "result"))
         });
-        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self);
+        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self, tensors);
         let cpu_result = gpu_tensors.remove(3).into_cpu(TIMER.handle()).unwrap();
         ground.all_close(&cpu_result, 1e-5, 1e-5).unwrap();
     }

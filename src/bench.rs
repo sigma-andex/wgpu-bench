@@ -26,9 +26,12 @@ pub trait KernelBench: std::fmt::Debug {
     fn validate(&self, tensors: &[CPUTensor]);
 }
 
-pub fn dispatch_validate<K: KernelBench>(handle: &GPUHandle, kernel: &K) -> Vec<GPUTensor> {
+pub fn dispatch_validate<K: KernelBench>(
+    handle: &GPUHandle,
+    kernel: &K,
+    tensors: &[CPUTensor],
+) -> Vec<GPUTensor> {
     let _ = env_logger::builder().is_test(true).try_init();
-    let tensors = kernel.tensors();
     let workload = kernel.workload(&tensors);
     log::debug!("Workload: {:?}", workload);
     let source = kernel.source(&workload);
@@ -37,6 +40,7 @@ pub fn dispatch_validate<K: KernelBench>(handle: &GPUHandle, kernel: &K) -> Vec<
     let uniform_buffer = kernel.metadata(&tensors).into_buffer(handle);
     let gpu_tensors = tensors
         .into_iter()
+        .cloned()
         .map(|t| t.into_gpu(handle))
         .collect::<Vec<_>>();
     let bind_groups = tensors_to_bind_groups(handle, &gpu_tensors, uniform_buffer, &pipeline);

@@ -119,11 +119,13 @@ impl KernelBench for QGEMMBenchmark {
             let result: Context = python! {
                 import torch
                 (a, b) = (torch.from_numpy('py_a), torch.from_numpy('py_b))
+                print("A: ", a)
+                print("B: ", b)
                 result = (a @ b).numpy()
             };
             CPUTensor::from(result.get_with_gil::<&PyArrayDyn<f32>>(py, "result"))
         });
-        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self);
+        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self, tensors);
         let cpu_result = gpu_tensors.remove(2).into_cpu(TIMER.handle()).unwrap();
         println!("OURS: {}", cpu_result);
         println!("GROUND: {}", ground);

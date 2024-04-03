@@ -99,16 +99,16 @@ impl KernelBench for Rope {
             };
             CPUTensor::from(result.get_with_gil::<&PyArrayDyn<f32>>(py, "result"))
         });
-        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self);
+        let mut gpu_tensors = dispatch_validate(TIMER.handle(), self, tensors);
         let cpu_result = gpu_tensors.remove(1).into_cpu(TIMER.handle()).unwrap();
         println!("MLX: {}\n", ground);
         println!("US: {}", cpu_result);
-        //ground.all_close(&cpu_result, 1e-5, 1e-5).unwrap();
+        ground.all_close(&cpu_result, 1e-5, 1e-5).unwrap();
     }
 }
 
 fn benchmark(c: &mut Criterion<&WgpuTimer>) {
-    let throughput = Throughput::Elements(1 as u64);
+    let throughput = Throughput::Elements(16 * 64 * 128);
     wgpu_bencher::benchmark(c, &TIMER, Rope {}, throughput)
 }
 
