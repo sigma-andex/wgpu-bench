@@ -40,16 +40,11 @@ fn main(
         @builtin(num_workgroups) groups: vec3<u32>,
 ) {
   let grid = vec3<u32>(groups.x * {{ workgroup_size_x }}u, groups.y * {{ workgroup_size_y }}u, groups.z * {{ workgroup_size_z }}u);
+  let out_index_1 = dot(pos, vec3<u32>(metadata.out_strides[2], metadata.out_strides[1], metadata.out_strides[0]));
+  let out_index_2 = out_index_1 + grid.x * metadata.out_strides[2];
 
-  var in_index_1 = 0u;
-  var in_index_2 = 0u;
-  var out_index_1 = 0u;
-  var out_index_2 = 0u;
-  out_index_1 = pos.x * metadata.out_strides[2] + pos.y * metadata.out_strides[1] + pos.z * metadata.out_strides[0];
-  out_index_2 = out_index_1 + grid.x * metadata.out_strides[2];
-
-  in_index_1 = pos.x * metadata.in_strides[2] + pos.y * metadata.in_strides[1] + pos.z * metadata.in_strides[0];
-  in_index_2 = in_index_1 + grid.x * metadata.in_strides[2];
+  let in_index_1 = dot(pos, vec3<u32>(metadata.in_strides[2], metadata.in_strides[1], metadata.in_strides[0]));
+  let in_index_2 = in_index_1 + grid.x * metadata.in_strides[2];
 
   let L = metadata.scale * f32(pos.y + metadata.offset);
   let d = f32(pos.x) / f32(grid.x);
@@ -58,12 +53,12 @@ fn main(
   let costheta = cos(theta);
   let sintheta = sin(theta);
 
-  let x1 = f32(in[in_index_1]);
-  let x2 = f32(in[in_index_2]);
+  let x1 = in[in_index_1];
+  let x2 = in[in_index_2];
 
   let rx1 = x1 * costheta - x2 * sintheta;
   let rx2 = x1 * sintheta + x2 * costheta;
 
-  out[out_index_1] = f32(rx1);
-  out[out_index_2] = f32(rx2);
+  out[out_index_1] = rx1;
+  out[out_index_2] = rx2;
 }
