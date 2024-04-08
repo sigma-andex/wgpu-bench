@@ -51,9 +51,9 @@ impl SGEMVBenchmark {
         let dimInner = if self.trans_a { self.M } else { self.K };
 
         let mut shape_fit = [false; 3];
-        //shape_fit[0] = aOuter % self.TILE_DIM == 0;
-        //shape_fit[1] = bOuter % self.TILE_DIM == 0;
-        //shape_fit[2] = dimInner % self.TILE_DIM == 0;
+        shape_fit[0] = aOuter % self.TILE_DIM == 0;
+        shape_fit[1] = bOuter % self.TILE_DIM == 0;
+        shape_fit[2] = dimInner % self.TILE_DIM == 0;
         println!("SHAPE FIT: {:?}", shape_fit);
         shape_fit
     }
@@ -106,11 +106,17 @@ impl KernelBench for SGEMVBenchmark {
 
     fn workload(&self, _: &[CPUTensor]) -> Workload {
         let (TILE_DIM, ROW_PER_THREAD) = (self.TILE_DIM, self.ROW_PER_THREAD);
+
+        //8x8x1
+        //2048 / 32 = 64
+        //2048 / 32 = 64
         let workgroup_size = wgs![(TILE_DIM / 4) as _, (TILE_DIM / ROW_PER_THREAD) as _, 1];
         let dimA = if self.trans_a { self.K } else { self.M };
         let dimB = if self.trans_b { self.K } else { self.N };
+
         let group_x = Workload::ceil(dimB, TILE_DIM);
         let group_y = Workload::ceil(dimA, TILE_DIM);
+
         let workgroup_count = wgc![group_x as _, group_y as _, self.B as u32];
         let dispatch = Workload::new(workgroup_size, workgroup_count);
         println!("DISPATCH: {:?}", dispatch);
@@ -175,9 +181,9 @@ impl KernelBench for SGEMVBenchmark {
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 1024;
+    let M = 2048;
     let N = 1;
-    let K = 1024;
+    let K = 2048;
     let TILE_DIM = 32;
     let ROW_PER_THREAD = 4;
 

@@ -118,7 +118,7 @@ struct Meta {
 var<workgroup> mm_Asub : array<array<f32, 32>, 32>;
 var<workgroup> mm_Bsub : array<array<f32, 32>, 32>;
 
-@compute @workgroup_size(8,8,1) 
+@compute @workgroup_size({{ TILE_DIM / 4 }}, {{ TILE_DIM / ROW_PER_THREAD }},1) 
 fn main(@builtin(local_invocation_id) localId : vec3<u32>,
         @builtin(global_invocation_id) globalId : vec3<u32>,
         @builtin(workgroup_id) workgroupId : vec3<u32>) {

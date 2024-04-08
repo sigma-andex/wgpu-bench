@@ -115,10 +115,10 @@ struct Meta {
     dimInner: i32,
 }
   
-var<workgroup> mm_Asub : array<array<f32, 32>, 32>;
-var<workgroup> mm_Bsub : array<array<f32, 32>, 32>;
+var<workgroup> mm_Asub : array<array<f32, {{ TILE_DIM }}>, {{ TILE_DIM }}>;
+var<workgroup> mm_Bsub : array<array<f32, {{ TILE_DIM }}>, {{ TILE_DIM }}>;
 
-@compute @workgroup_size(8,8,1) 
+@compute @workgroup_size({{ TILE_DIM / 4 }}, {{ TILE_DIM / ROW_PER_THREAD }},1) 
 fn main(@builtin(local_invocation_id) localId : vec3<u32>,
         @builtin(global_invocation_id) globalId : vec3<u32>,
         @builtin(workgroup_id) workgroupId : vec3<u32>) {
@@ -129,11 +129,11 @@ fn main(@builtin(local_invocation_id) localId : vec3<u32>,
     let tileRow = i32(localId.y) * 4;
     let tileCol = i32(localId.x) * 4;
 
-    let globalRowStart = i32(workgroupId.y) * 32;
+    let globalRowStart = i32(workgroupId.y) * {{ TILE_DIM }};
     let globalRow = i32(globalId.y) * 4;
     let globalCol = i32(globalId.x) * 4;
 
-    let numTiles = (metadata.dimInner - 1) / 32 + 1;
+    let numTiles = (metadata.dimInner - 1) / {{ TILE_DIM }} + 1;
     var kStart = 0;
 
     var acc: array<array<f32, 4>, 4>;
@@ -165,21 +165,21 @@ fn main(@builtin(local_invocation_id) localId : vec3<u32>,
                     globalCol + innerCol);
             }
         }
-        kStart = kStart + 32;
+        kStart = kStart + {{ TILE_DIM }};
         workgroupBarrier();
 
-        // Compute acc values for a single thread.
-        var BCached: array<f32, 4>;
-        for (var k = 0; k < 32; k++) {
-            for (var inner = 0; inner < 4; inner++) {
-                BCached[inner] = mm_Bsub[k][tileCol + inner];
-            }
+        for (var k = 0; k < {{ TILE_DIM }}; k++) {
+            let BCached0 = mm_Bsub[k][tileCol + 0];
+            let BCached1 = mm_Bsub[k][tileCol + 1];
+            let BCached2 = mm_Bsub[k][tileCol + 2];
+            let BCached3 = mm_Bsub[k][tileCol + 3];
 
             for (var innerRow = 0; innerRow < 4; innerRow++) {
                 let ACached = mm_Asub[tileRow + innerRow][k];
-                for (var innerCol = 0; innerCol < 4; innerCol++) {
-                    acc[innerRow][innerCol] = fma(ACached, BCached[innerCol], acc[innerRow][innerCol]);
-                }
+                acc[innerRow][0] = fma(ACached, BCached0, acc[innerRow][0]);
+                acc[innerRow][1] = fma(ACached, BCached1, acc[innerRow][1]);
+                acc[innerRow][2] = fma(ACached, BCached2, acc[innerRow][2]);
+                acc[innerRow][3] = fma(ACached, BCached3, acc[innerRow][3]);
             }
         }
 
