@@ -40,6 +40,11 @@ path = "benches/sgemm/tfjs.rs"
 harness = false
 
 [[bench]]
+name = "sgemv"
+path = "benches/sgemv/gemv.rs"
+harness = false
+
+[[bench]]
 name = "qgemm"
 path = "benches/qgemm/tfjs.rs"
 harness = false
@@ -53,6 +58,7 @@ harness = false
 name = "rope_cp"
 path = "benches/rope/rope_cp.rs"
 harness = false
+
 
 [dependencies]
 anyhow = "1.0.75"
