@@ -175,11 +175,11 @@ impl KernelBench for SGEMMBenchmark {
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 1023;
+    let M = 1024;
     let N = 1024;
     let K = 1024;
     let TILE_DIM = 32;
-    let ROW_PER_THREAD = 4;
+    let ROW_PER_THREAD = 8;
 
     let trans_a = false;
     let trans_b = false;
