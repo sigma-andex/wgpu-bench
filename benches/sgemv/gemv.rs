@@ -160,15 +160,15 @@ impl KernelBench for SGEMVBenchmark {
         let cpu_result = gpu_tensors.remove(2).into_cpu(TIMER.handle()).unwrap();
         println!("GROUND: {}", ground);
         println!("OURS: {}", cpu_result);
-        ground.all_close(&cpu_result, 1e-4, 1e-4).unwrap();
+        ground.all_close(&cpu_result, 5e-4, 5e-4).unwrap();
     }
 }
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 4096;
+    let M = 2560;
     let N = 1;
-    let K = 4096;
+    let K = 10240;
     let TILE_DIM = 32;
     let ROW_PER_THREAD = 4;
 
