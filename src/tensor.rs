@@ -2,7 +2,7 @@ use bytemuck::NoUninit;
 use ndarray::Dimension;
 use numpy::ndarray::{ArrayD, ArrayViewD};
 use rand::{distributions::uniform::SampleUniform, prelude::SeedableRng, rngs::SmallRng};
-use rand_distr::{Distribution, Poisson, StandardNormal};
+use rand_distr::{Distribution, StandardNormal};
 
 use numpy::PyArrayDyn;
 use wgpu::{BindGroupEntry, BindingResource, BufferUsages};
@@ -324,6 +324,7 @@ impl GPUTensor {
                 .unwrap();
             },
         );
+        handle.queue().submit(None);
         handle.device().poll(wgpu::Maintain::Wait);
         rx.recv().unwrap()
     }

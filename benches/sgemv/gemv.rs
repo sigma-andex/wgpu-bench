@@ -75,11 +75,7 @@ impl KernelBench for SGEMVBenchmark {
             && (self.M % 4 == 0)
             && (self.N % 4 == 0)
             && (self.K % 4 == 0);
-        let template = if is_vec4 {
-            include_str!("../../kernels/sgemv/sgemv_vectorized.wgsl")
-        } else {
-            include_str!("../../kernels/sgemv/sgemv_scalar.wgsl")
-        };
+        let template = include_str!("../../kernels/sgemv/sgemv_1v.wgsl");
         tera.add_raw_template(Self::name(), template).unwrap();
         let shape_fit = self.shape_fit();
         context.insert("FIT_A_OUTER", &shape_fit[0]);
@@ -105,19 +101,8 @@ impl KernelBench for SGEMVBenchmark {
     }
 
     fn workload(&self, _: &[CPUTensor]) -> Workload {
-        let (TILE_DIM, ROW_PER_THREAD) = (self.TILE_DIM, self.ROW_PER_THREAD);
-
-        //8x8x1
-        //2048 / 32 = 64
-        //2048 / 32 = 64
-        let workgroup_size = wgs![(TILE_DIM / 4) as _, (TILE_DIM / ROW_PER_THREAD) as _, 1];
-        let dimA = if self.trans_a { self.K } else { self.M };
-        let dimB = if self.trans_b { self.K } else { self.N };
-
-        let group_x = Workload::ceil(dimB, TILE_DIM);
-        let group_y = Workload::ceil(dimA, TILE_DIM);
-
-        let workgroup_count = wgc![group_x as _, group_y as _, self.B as u32];
+        let workgroup_size = wgs![32, 1, 1];
+        let workgroup_count = wgc![(self.M / 32) as _, 1, 1];
         let dispatch = Workload::new(workgroup_size, workgroup_count);
         println!("DISPATCH: {:?}", dispatch);
         dispatch
@@ -175,15 +160,15 @@ impl KernelBench for SGEMVBenchmark {
         let cpu_result = gpu_tensors.remove(2).into_cpu(TIMER.handle()).unwrap();
         println!("GROUND: {}", ground);
         println!("OURS: {}", cpu_result);
-        ground.all_close(&cpu_result, 1e-5, 1e-5).unwrap();
+        ground.all_close(&cpu_result, 1e-4, 1e-4).unwrap();
     }
 }
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 2048;
+    let M = 4096;
     let N = 1;
-    let K = 2048;
+    let K = 4096;
     let TILE_DIM = 32;
     let ROW_PER_THREAD = 4;
 

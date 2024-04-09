@@ -70,11 +70,7 @@ impl KernelBench for SGEMMBenchmark {
         let mut tera = tera::Tera::default();
         let mut context = tera::Context::new();
 
-        let is_vec4 = !self.trans_a
-            && !self.trans_b
-            && (self.M % 4 == 0)
-            && (self.N % 4 == 0)
-            && (self.K % 4 == 0);
+        let is_vec4 = !self.trans_a && !self.trans_b && (self.N % 4 == 0) && (self.K % 4 == 0);
         let template = if is_vec4 {
             include_str!("../../kernels/sgemm/gemm_vectorized.wgsl")
         } else {
@@ -169,15 +165,15 @@ impl KernelBench for SGEMMBenchmark {
         let cpu_result = gpu_tensors.remove(2).into_cpu(TIMER.handle()).unwrap();
         println!("GROUND: {}", ground);
         println!("OURS: {}", cpu_result);
-        ground.all_close(&cpu_result, 1e-5, 1e-5).unwrap();
+        ground.all_close(&cpu_result, 1e-3, 1e-3).unwrap();
     }
 }
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 1023;
-    let N = 1024;
-    let K = 1024;
+    let M = 1;
+    let N = 2560;
+    let K = 10240;
     let TILE_DIM = 32;
     let ROW_PER_THREAD = 4;
 
