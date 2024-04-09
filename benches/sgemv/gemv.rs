@@ -102,7 +102,7 @@ impl KernelBench for SGEMVBenchmark {
 
     fn workload(&self, _: &[CPUTensor]) -> Workload {
         let workgroup_size = wgs![32, 4, 1];
-        let workgroup_count = wgc![(self.M / 32) as _, 1, 1];
+        let workgroup_count = wgc![(self.M / 32) as _, 1, self.B as _];
         let dispatch = Workload::new(workgroup_size, workgroup_count);
         println!("DISPATCH: {:?}", dispatch);
         dispatch
@@ -165,7 +165,7 @@ impl KernelBench for SGEMVBenchmark {
 }
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
-    let B = 1;
+    let B = 4;
     let M = 2560;
     let N = 1;
     let K = 10240;

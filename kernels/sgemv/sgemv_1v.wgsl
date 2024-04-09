@@ -23,13 +23,21 @@ struct Meta {
 
 @compute @workgroup_size({{workgroup_size_x}},{{workgroup_size_y}},{{workgroup_size_z}})
 fn main(@builtin(global_invocation_id) globalId : vec3<u32>) {
+    let batch = i32(globalId.z);
+    let batchA = batch % metadata.aShape[0];
+    let batchB = batch % metadata.bShape[0];
+
+    let aOffset = metadata.aStrides.x * batchA / 4;
+    let bOffset = metadata.bStrides.x * batchB / 4;
+    let outOffset = metadata.outShapeStrides.x * batch;
+
     var sum = vec4<f32>(0.0);
     let row = i32(globalId.x);
 
-    let aIndex = metadata.aStrides.y * row / 4;
+    let aIndex = aOffset + metadata.aStrides.y * row / 4;
     for (var k = 0; k < metadata.dimInner / 4; k+=1) {
-        sum = fma(A[aIndex + k], X[k], sum);
+        sum = fma(A[aIndex + k], X[bOffset + k], sum);
     }
-    let outIndex = metadata.outShapeStrides.y * row;
+    let outIndex = outOffset + metadata.outShapeStrides.y * row;
     result[outIndex] = dot(sum, vec4<f32>(1.0)); 
 }
