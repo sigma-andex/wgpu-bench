@@ -75,7 +75,7 @@ impl KernelBench for SGEMVBenchmark {
             && (self.M % 4 == 0)
             && (self.N % 4 == 0)
             && (self.K % 4 == 0);
-        let template = include_str!("../../kernels/sgemv/sgemv_1v.wgsl");
+        let template = include_str!("../../kernels/sgemv/sgemv_2.wgsl");
         tera.add_raw_template(Self::name(), template).unwrap();
         let shape_fit = self.shape_fit();
         context.insert("FIT_A_OUTER", &shape_fit[0]);
@@ -101,7 +101,7 @@ impl KernelBench for SGEMVBenchmark {
     }
 
     fn workload(&self, _: &[CPUTensor]) -> Workload {
-        let workgroup_size = wgs![32, 1, 1];
+        let workgroup_size = wgs![32, 4, 1];
         let workgroup_count = wgc![(self.M / 32) as _, 1, 1];
         let dispatch = Workload::new(workgroup_size, workgroup_count);
         println!("DISPATCH: {:?}", dispatch);
