@@ -50,6 +50,11 @@ path = "benches/qgemm/tfjs.rs"
 harness = false
 
 [[bench]]
+name = "qgemv"
+path = "benches/qgemv/gemv.rs"
+harness = false
+
+[[bench]]
 name = "rope"
 path = "benches/rope/rope.rs"
 harness = false
