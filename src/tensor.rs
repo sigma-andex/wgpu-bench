@@ -78,7 +78,7 @@ impl CPUTensor {
     }
 
     pub fn from_slice<T: DataType>(data: &[T], shape: Shape) -> Self {
-        assert_eq!(data.len(), shape.numel());
+        assert_eq!(data.len(), shape.numel(), "from_slice data length mismatch");
         let bytes: &[u8] = bytemuck::cast_slice(data);
         let mut tensor =
             unsafe { Tensor::uninitialized(T::dt(), shape, T::dt().size_of()).unwrap() };

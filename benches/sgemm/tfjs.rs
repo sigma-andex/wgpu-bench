@@ -96,8 +96,9 @@ impl KernelBench for SGEMMBenchmark {
         let (B, M, N, K) = (self.B, self.M, self.N, self.K);
         let a = CPUTensor::randn::<f32>(shape![B, M, K]);
         let b = CPUTensor::randn::<f32>(shape![B, K, N]);
+        let bias = CPUTensor::randn::<f32>(shape![N]);
         let output = CPUTensor::zeros::<f32>(shape![B, M, N]);
-        vec![a, b, output]
+        vec![a, b, bias, output]
     }
 
     fn workload(&self, _: &[CPUTensor]) -> Workload {
@@ -143,26 +144,33 @@ impl KernelBench for SGEMMBenchmark {
     }
 
     fn validate(&self, tensors: &[CPUTensor]) {
-        let (a, b) = (&tensors[0], &tensors[1]);
+        let (a, b, bias) = (&tensors[0], &tensors[1], &tensors[2]);
         let (trans_a, trans_b) = (self.trans_a, self.trans_b);
         let ground = Python::with_gil(|py| {
-            let (py_a, py_b) = (a.to_py::<f32>(&py), b.to_py::<f32>(&py));
+            let (py_a, py_b, py_bias) = (
+                a.to_py::<f32>(&py),
+                b.to_py::<f32>(&py),
+                bias.to_py::<f32>(&py),
+            );
             let (py_trans_a, py_trans_b) = (trans_a.into_py(py), trans_b.into_py(py));
             let result: Context = python! {
                 import torch
+                import numpy as np
                 (a, b) = (torch.from_numpy('py_a), torch.from_numpy('py_b))
+                bias = torch.from_numpy('py_bias)
                 if 'py_trans_a:
                     print("Transposing A in Python")
                     a = torch.permute(a, (0, 2, 1))
                 if 'py_trans_b:
                     print("Transposing B in Python")
                     b = torch.permute(b, (0, 2, 1))
-                result = (a @ b).numpy()
+
+                result = ((a @ b) + bias).numpy()
             };
             CPUTensor::from(result.get_with_gil::<&PyArrayDyn<f32>>(py, "result"))
         });
         let mut gpu_tensors = dispatch_validate(TIMER.handle(), self, tensors);
-        let cpu_result = gpu_tensors.remove(2).into_cpu(TIMER.handle()).unwrap();
+        let cpu_result = gpu_tensors.remove(3).into_cpu(TIMER.handle()).unwrap();
         println!("GROUND: {}", ground);
         println!("OURS: {}", cpu_result);
         ground.all_close(&cpu_result, 1e-3, 1e-3).unwrap();
@@ -171,9 +179,9 @@ impl KernelBench for SGEMMBenchmark {
 
 pub fn benchmark(c: &mut Criterion<&WgpuTimer>) {
     let B = 1;
-    let M = 2560;
-    let N = 1;
-    let K = 10240;
+    let M = 256;
+    let N = 256;
+    let K = 256;
     let TILE_DIM = 32;
     let ROW_PER_THREAD = 4;
 
