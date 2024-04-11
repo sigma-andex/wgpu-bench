@@ -79,12 +79,13 @@ impl KernelBench for QGEMMBenchmark {
 
     fn tensors(&self) -> Vec<CPUTensor> {
         let (B, M, N, K) = (self.B, self.M, self.N, self.K);
-        let a = CPUTensor::randn::<f32>(shape![B, M, K]);
-        let b_unquant = CPUTensor::randn::<f32>(shape![B, K, N]);
+        println!("B: {}, M: {}, N: {}, K: {}", B, M, N, K);
+        let a_unquant = CPUTensor::randn::<f32>(shape![B, M, K]);
+        let b = CPUTensor::randn::<f32>(shape![B, K, N]);
         let quantizer = Quantizer::new(Quantization::SInt8);
-        let quantized_b = quantizer.quantize(b_unquant.clone());
+        let quantized_a = quantizer.quantize(a_unquant.clone());
         let output = CPUTensor::zeros::<f32>(shape![B, M, N]);
-        vec![a, quantized_b, output]
+        vec![quantized_a, b, output]
     }
 
     fn workload(&self, _: &[CPUTensor]) -> Workload {
@@ -112,10 +113,10 @@ impl KernelBench for QGEMMBenchmark {
     }
 
     fn validate(&self, tensors: &[CPUTensor]) {
-        let (a, bquant) = (&tensors[0], &tensors[1]);
-        let dequantized = Quantizer::new(Quantization::SInt8).dequantize(bquant.clone());
+        let (aquant, b) = (&tensors[0], &tensors[1]);
+        let dequantized = Quantizer::new(Quantization::SInt8).dequantize(aquant.clone());
         let ground = Python::with_gil(|py| {
-            let (py_a, py_b) = (a.to_py::<f32>(&py), dequantized.to_py::<f32>(&py));
+            let (py_a, py_b) = (dequantized.to_py::<f32>(&py), b.to_py::<f32>(&py));
             let result: Context = python! {
                 import torch
                 (a, b) = (torch.from_numpy('py_a), torch.from_numpy('py_b))
