@@ -99,7 +99,8 @@ var<private> workgroupId: vec3<u32>;
 
 @group(0) @binding(0) var<storage, read> A: array<f32>;
 @group(0) @binding(1) var<storage, read> B: array<f32>;
-@group(0) @binding(2) var<storage, read_write> result: array<f32>;
+@group(0) @binding(2) var<storage, read> bias: array<f32>;
+@group(0) @binding(3) var<storage, read_write> result: array<f32>;
 @group(1) @binding(0) var<uniform> metadata: Meta;
 
 
@@ -188,7 +189,8 @@ fn main(@builtin(local_invocation_id) localId : vec3<u32>,
 
     for (var innerRow = 0; innerRow < 4; innerRow++) {
         for (var innerCol = 0; innerCol < 4; innerCol++) {
-            mm_write(batch, globalRow + innerRow, globalCol + innerCol, acc[innerRow][innerCol]);
+            let val = acc[innerRow][innerCol] + bias[globalCol + innerCol];
+            mm_write(batch, globalRow + innerRow, globalCol + innerCol, val);
         }
     }
 } 
