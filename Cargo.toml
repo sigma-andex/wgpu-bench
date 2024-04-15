@@ -54,6 +54,11 @@ name = "rope_cp"
 path = "benches/rope/rope_cp.rs"
 harness = false
 
+[[bench]]
+name = "gguf"
+path = "benches/gguf/gguf.rs"
+harness = false
+
 [dependencies]
 anyhow = "1.0.75"
 bytemuck = "1.14.0"

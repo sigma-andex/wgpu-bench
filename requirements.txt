@@ -2,3 +2,4 @@
 numpy==1.24.3
 torch==2.0.1
 rotary-embedding-torch==0.5.3
+mlx==0.9.1
