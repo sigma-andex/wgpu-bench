@@ -63,7 +63,8 @@ rand = {version="0.8.5", features=["small_rng"]}
 smallvec = "1.11.2"
 tabled = "0.14.0"
 criterion = "0.5.1"
-wgpu = { git="https://github.com/FL33TW00D/wgpu", branch="master", features=["expose-ids"]}
+ratchet = { git="https://github.com/huggingface/ratchet", branch = "master"}
+wgpu = { version="0.18", features=["expose-ids", "fragile-send-sync-non-atomic-wasm"]}
 pollster = "0.3.0"
 lazy_static = "1.4.0"
 glam = "0.25.0"

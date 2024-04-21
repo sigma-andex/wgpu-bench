@@ -29,9 +29,7 @@ impl std::ops::Deref for GPUHandle {
 
 impl GPUHandle {
     fn get_features() -> wgpu::Features {
-        wgpu::Features::default()
-            | wgpu::Features::TIMESTAMP_QUERY
-            | wgpu::Features::SUBGROUP_COMPUTE
+        wgpu::Features::default() | wgpu::Features::TIMESTAMP_QUERY
     }
 
     pub async fn new() -> Result<Self, anyhow::Error> {
@@ -39,8 +37,8 @@ impl GPUHandle {
 
         let mut device_descriptor = wgpu::DeviceDescriptor {
             label: Some("rumble"),
-            required_features: Self::get_features(),
-            required_limits: Limits {
+            features: Self::get_features(),
+            limits: Limits {
                 max_buffer_size: (2 << 29) - 1,
                 max_storage_buffer_binding_size: (2 << 29) - 1,
                 max_compute_invocations_per_workgroup: 1024,
@@ -51,7 +49,7 @@ impl GPUHandle {
         let (device, queue) = if let Err(e) = device_request {
             log::warn!("Failed to create device with error: {:?}", e);
             log::warn!("Trying again with reduced limits");
-            device_descriptor.required_limits = adapter.limits();
+            device_descriptor.limits = adapter.limits();
             let device_request = adapter.request_device(&device_descriptor, None).await;
             device_request.unwrap()
         } else {
