@@ -29,9 +29,7 @@ impl std::ops::Deref for GPUHandle {
 
 impl GPUHandle {
     fn get_features() -> wgpu::Features {
-        wgpu::Features::default()
-            | wgpu::Features::TIMESTAMP_QUERY
-            | wgpu::Features::SUBGROUP_COMPUTE
+        wgpu::Features::default() | wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::SUBGROUP
     }
 
     pub async fn new() -> Result<Self, anyhow::Error> {
@@ -82,21 +80,24 @@ impl GPUHandle {
             let mut most_performant_adapter = None;
             let mut current_score = -1;
 
-            instance.enumerate_adapters(backends).for_each(|adapter| {
-                let info = adapter.get_info();
-                let score = match info.device_type {
-                    DeviceType::DiscreteGpu => 5,
-                    DeviceType::Other => 4, //Other is usually discrete
-                    DeviceType::IntegratedGpu => 3,
-                    DeviceType::VirtualGpu => 2,
-                    DeviceType::Cpu => 1,
-                };
+            instance
+                .enumerate_adapters(backends)
+                .into_iter()
+                .for_each(|adapter| {
+                    let info = adapter.get_info();
+                    let score = match info.device_type {
+                        DeviceType::DiscreteGpu => 5,
+                        DeviceType::Other => 4, //Other is usually discrete
+                        DeviceType::IntegratedGpu => 3,
+                        DeviceType::VirtualGpu => 2,
+                        DeviceType::Cpu => 1,
+                    };
 
-                if score > current_score {
-                    most_performant_adapter = Some(adapter);
-                    current_score = score;
-                }
-            });
+                    if score > current_score {
+                        most_performant_adapter = Some(adapter);
+                        current_score = score;
+                    }
+                });
 
             if let Some(adapter) = most_performant_adapter {
                 adapter

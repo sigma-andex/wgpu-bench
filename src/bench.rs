@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use criterion::{BenchmarkId, Criterion, Throughput};
+use wgpu::PipelineCompilationOptions;
 
 use crate::{CPUTensor, GPUBuffer, GPUHandle, GPUTensor, OpMetadata, WgpuTimer, Workload};
 
@@ -94,6 +95,7 @@ pub fn source_to_pipeline(handle: &GPUHandle, source: &str) -> wgpu::ComputePipe
             layout: None,
             module: &shader_module,
             entry_point: "main",
+            compilation_options: PipelineCompilationOptions::default(),
         })
 }
 
